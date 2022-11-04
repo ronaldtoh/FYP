@@ -1,6 +1,7 @@
 import numpy as np
 from helper_functions import get_tav
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 from scipy.special import exp1
 from data_another_style import data
 
@@ -23,8 +24,16 @@ class MultiPlateModel:
         data2 = np.array(data)
         self.wavelength = data2[:, 0]
         refractive_index_array = data2[:, 1]
+        # This k right now is the absorption coefficient.
+        # It is derived from adding:
+        # [(Chlorophyll (a+b) content of leaf) * (Specific absorption coefficient of leaf) +
+        # (Water content of leaf) * (Specific absorption coefficient of leaf) +
+        # (Dry Matter content of leaf) * (Specific absorption coefficient of leaf)] / Leaf Structure Parameter
+        # + Absorption coefficient of albino elementary layer
         k = (Cab * data2[:, 3] + Cw * data2[:, 4] + Cm * data2[:, 5]) / N + data2[:, 2]
 
+        # Getting the transmission coefficient k
+        # Should never hit the if statement
         if np.all(k <= 0):
             k = 1
         else:
@@ -103,21 +112,44 @@ class MultiPlateModel:
         return self.s2 / self.s3
 
     def output(self):
-        return [self.wavelength, 1 - self.reflectance(), self.transmittance()]
+        return [self.wavelength, self.reflectance(), 1 - self.transmittance()]
 
 
 if __name__ == "__main__":
-    model = MultiPlateModel(1.518, 58, 0.0131, 0.003662)
+    # model = MultiPlateModel(1.518, 58, 0.0131, 0.003662)
+    model = MultiPlateModel(1.2, 30, 0.015, 0.01)
     # model = PROSPECT1990(2.698, 70.8, 0.000117, 0.009327)
     # df = pd.DataFrame(model.output())
     output = model.output()
     # print(f"reflectance: {output[1]}")
     # print(f"transmittance: {output[2]}")
+
     plot, axs = plt.subplots()
     axs.plot(output[0], output[1], label="Reflectance")
     axs.plot(output[0], output[2], label="Transmittance")
-    total = output[1] + output[2]
 
-    axs.plot(output[0], total, label="R+T")
-    axs.legend()
+    total = output[1] + output[2]
+    absorbed = 1 - total
+    axs.plot(output[0], absorbed, label="Absorbed")
+    axs.hlines(y=1, xmin=400, xmax=2500, color="k")
+    # axs.plot(output[0], total, label="R+T")
+    axs.set_title("Reflectance, Transmittance of light through a leaf")
+    axs.set_xlabel("Wavelength/nm")
+    axs.set_ylabel("")
+    # Set axis ranges; by default this will put major ticks every 25.
+    axs.set_xlim(400, 2500)
+    axs.set_ylim(0, 1.2)
+
+    # Change major ticks to show every 20.
+    axs.xaxis.set_major_locator(MultipleLocator(500))
+    axs.yaxis.set_major_locator(MultipleLocator(0.2))
+
+    # Change minor ticks to show every 5. (20/4 = 5)
+    axs.xaxis.set_minor_locator(AutoMinorLocator(5))
+    axs.yaxis.set_minor_locator(AutoMinorLocator(4))
+
+    axs.grid(which="both", color=(0.8, 0.8, 0.8))
+    plt.legend(loc=(1.04, 0.5))
+    plt.legend(bbox_to_anchor=(1, 0.4), loc="center right")
+
     plot.savefig("test.jpg")

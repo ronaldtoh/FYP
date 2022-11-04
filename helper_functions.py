@@ -17,9 +17,7 @@ def get_tav(theta, refractive_index_arr: np.array):
     if theta_r == 0:
         return 4 * np.divide(refractive_index_arr, a * 2)
     elif theta_r == np.pi / 2:
-        b1 = np.zeros(
-            s
-        )  ####################################probably wrong syntax#################
+        b1 = np.zeros(s)  
     else:
         b1 = np.sqrt((ds**2 - rp / 2) ** 2 + k)
     b2 = ds**2 - rp / 2
