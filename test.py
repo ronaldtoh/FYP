@@ -18,20 +18,22 @@ test_arr = np.array([1, 2, 3, 4, 5])
 print(k / b)
 
 
-tp1 = (-2 * r2 * (b - a)) / (rp**2)
-tp2 = (-2 * r2 * rp) * np.log(b / a) / (rm**2)
-tp3 = r2 * ((b**-1) - (a**-1)) / 2
-tp4 = (
-    16
-    * r2**2
-    * (r2**2 + 1)
-    * np.log((2 * rp * b - rm**2) / (2 * rp * a - rm**2))
-    / (rp**3 * rm**2)
-)
-tp5 = (
-    16
-    * r2**3
-    * ((2 * rp * b - rm**2) ** -1 - (2 * rp * a - rm**2) ** -1)
-    / (rp**3 * rm**2)
-)
-tp = tp1 + tp2 + tp3 + tp4 + tp5
+# tp1 = (-2 * r2 * (b - a)) / (rp**2)
+# tp2 = (-2 * r2 * rp) * np.log(b / a) / (rm**2)
+# tp3 = r2 * ((b**-1) - (a**-1)) / 2
+# tp4 = (
+#     16
+#     * r2**2
+#     * (r2**2 + 1)
+#     * np.log((2 * rp * b - rm**2) / (2 * rp * a - rm**2))
+#     / (rp**3 * rm**2)
+# )
+# tp5 = (
+#     16
+#     * r2**3
+#     * ((2 * rp * b - rm**2) ** -1 - (2 * rp * a - rm**2) ** -1)
+#     / (rp**3 * rm**2)
+# )
+# tp = tp1 + tp2 + tp3 + tp4 + tp5
+
+print(np.cos(np.radians(40)))

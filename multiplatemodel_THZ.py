@@ -1,5 +1,5 @@
 import numpy as np
-from helper_functions import get_tav
+from helper_functions import get_tav, get_tav_THZ
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 from scipy.special import exp1
@@ -17,38 +17,45 @@ Plant leaf reflectance and transmittance are calculated from 400 nm to
 """
 
 
-class MultiPlateModel:
+class MultiPlateModel_THZ:
     def __init__(self, N: int, Cab, Cw, Cm):
         "Leaf Structure Parameter"
         self.N = N
-        data2 = np.array(data)
-        self.wavelength = data2[:, 0]
-        refractive_index_array = data2[:, 1]
+        self.frequency = np.linspace(1.6, 0.2, 100)
+        self.wavelength = 3e8 / (self.frequency * 10e12) * 1000
+        # print(self.wavelength)
+        self.refractive_index_array = np.linspace(2.1, 1.7, 100)
+        self.dry_matter_absorption_coeff = np.linspace(5, 140, 100)
+        self.water_absorption_coeff = np.linspace(100, 300, 100)
+        self.albino_absorption_coeff = np.linspace(50, 200, 100)
+        # self.scatter = abs_scatter(self.frequency, 40 ,)
         # This k right now is the absorption coefficient.
         # It is derived from adding:
         # [(Chlorophyll (a+b) content of leaf) * (Specific absorption coefficient of leaf) +
         # (Water content of leaf) * (Specific absorption coefficient of leaf) +
         # (Dry Matter content of leaf) * (Specific absorption coefficient of leaf)] / Leaf Structure Parameter
         # + Absorption coefficient of albino elementary layer
-        k = (Cab * data2[:, 3] + Cw * data2[:, 4] + Cm * data2[:, 5]) / N + data2[:, 2]
+        # + Scattering-induced absorption
+        a_k = (
+            Cw * self.water_absorption_coeff  # + Cm * self.dry_matter_absorption_coeff
+        ) / N
 
+        # print(get_tav_THZ(90, self.refractive_index_array, k, self.frequency))
         # Getting the transmission coefficient k
         # Should never hit the if statement
-        if np.all(k <= 0):
+        if np.all(a_k <= 0):
             k = 1
         else:
-            k = (1 - k) * np.exp(-k) + (k**2) * exp1(k)
-        # print(k)
-        t1 = get_tav(90, refractive_index_array)
-        t2 = get_tav(40, refractive_index_array)
-
-        print(t1)
+            k = (1 - a_k) * np.exp(-a_k) + (a_k**2) * exp1(a_k)
+        t1 = get_tav_THZ(90, self.refractive_index_array, a_k, self.wavelength)
+        t2 = get_tav_THZ(40, self.refractive_index_array, a_k, self.wavelength)
         print(t2)
+        print(t1)
         x1 = 1 - t1
-        x2 = (t1**2) * (k**2) * (refractive_index_array**2 - t1)
-        x3 = (t1**2) * k * (refractive_index_array**2)
-        x4 = (refractive_index_array**4) - (k**2) * (
-            (refractive_index_array**2 - t1) ** 2
+        x2 = (t1) ** 2 * (k**2) * (self.refractive_index_array**2 - t1)  # * t2
+        x3 = (t1) ** 2 * k * (self.refractive_index_array**2)  # * t2
+        x4 = (self.refractive_index_array**4) - (k**2) * (
+            (self.refractive_index_array**2 - t1) ** 2
         )
         x5 = t2 / t1
         x6 = x5 * (t1 - 1) + 1 - t2
@@ -67,7 +74,6 @@ class MultiPlateModel:
         self.delta = self._delta()
         self.alpha = self._alpha()
         self.beta = self._beta()
-        # print(self.delta)
 
         # print(f"beta: {self.beta}")
         # print(f"delta: {self.delta}")
@@ -115,12 +121,13 @@ class MultiPlateModel:
         return self.s2 / self.s3
 
     def output(self):
-        return [self.wavelength, self.reflectance(), 1 - self.transmittance()]
+        return [self.frequency, self.reflectance(), self.transmittance()]
 
 
 if __name__ == "__main__":
-    # model = MultiPlateModel(1.518, 58, 0.0131, 0.003662)
-    model = MultiPlateModel(1.2, 30, 0.015, 0.01)
+    # model = MultiPlateModel_THZ(1.518, 58, 0.00131, 0.003662)
+    model = MultiPlateModel_THZ(1.2, 30, 0.0015, 0.01)
+    # model = MultiPlateModel_THZ(2.2, 30, 0.0015, 0.0005)
     # model = PROSPECT1990(2.698, 70.8, 0.000117, 0.009327)
     # df = pd.DataFrame(model.output())
     output = model.output()
@@ -134,25 +141,25 @@ if __name__ == "__main__":
     total = output[1] + output[2]
     absorbed = 1 - total
     axs.plot(output[0], absorbed, label="Absorbed")
-    axs.hlines(y=1, xmin=400, xmax=2500, color="k")
+    # axs.hlines(y=1, xmin=400, xmax=2500, color="k")
     # axs.plot(output[0], total, label="R+T")
     axs.set_title("Reflectance, Transmittance of light through a leaf")
-    axs.set_xlabel("Wavelength/nm")
+    axs.set_xlabel("frequency/Thz")
     axs.set_ylabel("")
     # Set axis ranges; by default this will put major ticks every 25.
-    axs.set_xlim(400, 2500)
-    axs.set_ylim(0, 1.2)
+    # axs.set_xlim(400, 2500)
+    axs.set_ylim(-0.2, 1.2)
 
-    # Change major ticks to show every 20.
-    axs.xaxis.set_major_locator(MultipleLocator(500))
-    axs.yaxis.set_major_locator(MultipleLocator(0.2))
+    # # Change major ticks to show every 20.
+    # axs.xaxis.set_major_locator(MultipleLocator(500))
+    # axs.yaxis.set_major_locator(MultipleLocator(0.2))
 
-    # Change minor ticks to show every 5. (20/4 = 5)
-    axs.xaxis.set_minor_locator(AutoMinorLocator(5))
-    axs.yaxis.set_minor_locator(AutoMinorLocator(4))
+    # # Change minor ticks to show every 5. (20/4 = 5)
+    # axs.xaxis.set_minor_locator(AutoMinorLocator(5))
+    # axs.yaxis.set_minor_locator(AutoMinorLocator(4))
 
     axs.grid(which="both", color=(0.8, 0.8, 0.8))
     plt.legend(loc=(1.04, 0.5))
     plt.legend(bbox_to_anchor=(1, 0.4), loc="center right")
 
-    plot.savefig("test.jpg")
+    plot.savefig("test_THZ.jpg")

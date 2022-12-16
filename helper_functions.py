@@ -1,5 +1,115 @@
 import numpy as np
 from mpmath import gammainc
+import scipy.integrate as integrate
+from data_another_style import data
+
+
+def abs_scatter(frequency, theta, tau, thickness):
+    delta_n = (3) ** 0.5 - 1
+    wavelength = 3e8 / frequency
+    scatter = (
+        delta_n * 4 * np.pi * tau * np.cos(np.radians(theta)) / wavelength
+    ) ** 2 / thickness
+    return scatter
+
+
+def get_tav_THZ_old(theta: float, n: np.array, alpha: np.array, wave: np.array):
+    """Get average transmission (When absorption is non-negligible)
+
+    Args:
+        theta (float): Degree of incidence (in degrees)
+        n (np.array): Refractive Index array
+        alpha (np.array): Absorption Coefficient array
+        wave (np.array): Wavelength array
+    """
+    theta_r = np.radians(theta)
+    kappa = wave * alpha / (4 * np.pi)
+    cos_theta = np.cos(theta_r)
+    sin_theta = np.sin(theta_r)
+
+    if theta == 0:
+        r = ((n - 1) ** 2 + kappa**2) / ((n + 1) ** 2 + kappa**2)
+        return 1 - r
+
+    # Common Expressions for psi expressions
+    p1 = n**2 - kappa**2 - (sin_theta) ** 2
+    p2 = 4 * n**2 * kappa**2
+
+    # Calculating psi
+    psi1 = (0.5 * (p1 + (p1**2 + p2) ** 0.5)) ** 0.5
+    psi2 = (0.5 * (-p1 + (p1**2 + p2) ** 0.5)) ** 0.5
+
+    # Calculate r_perpendicular
+    r_per1 = (cos_theta - psi1) ** 2 + psi2**2
+    r_per2 = (cos_theta + psi1) ** 2 + psi2**2
+    r_per = r_per1 / r_per2
+
+    # Calculate r_parallel
+    r_par1 = ((n**2 - kappa**2) * cos_theta - psi1) ** 2
+    r_par2 = (2 * n * kappa * cos_theta - psi2) ** 2
+    r_par3 = ((n**2 - kappa**2) * cos_theta + psi1) ** 2
+    r_par4 = (2 * n * kappa * cos_theta + psi2) ** 2
+    r_par = (r_par1 + r_par2) / (r_par3 + r_par4)
+
+    t_per = 1 - r_per
+    t_par = 1 - r_par
+
+    return 0.5 * (t_per + t_par)
+
+
+def get_tav_THZ(alpha: float, ref_arr: np.array, absorption: np.array, wave: np.array):
+    """Get average transmission (When absorption is non-negligible)
+
+    Args:
+        alpha (float): Degree of incidence (in degrees)
+        n (np.array): Refractive Index array
+        absorption (np.array): Absorption Coefficient array
+        wave (np.array): Wavelength array
+    """
+    kappa_i = wave * absorption / (4 * np.pi)
+    # print(kappa)
+
+    if alpha == 0:
+        r = ((n - 1) ** 2 + kappa_i**2) / ((n + 1) ** 2 + kappa_i**2)
+        return 1 - r
+
+    def txnn(theta, n, kappa):
+        # Common Expressions for psi expressions
+        theta_r = np.radians(theta)
+        cos_theta = np.cos(theta_r)
+        sin_theta = np.sin(theta_r)
+        p1 = n**2 - kappa**2 - (sin_theta) ** 2
+        p2 = 4 * n**2 * kappa**2
+
+        # Calculating psi
+        psi1 = (0.5 * (p1 + (p1**2 + p2) ** 0.5)) ** 0.5
+        psi2 = (0.5 * (-p1 + (p1**2 + p2) ** 0.5)) ** 0.5
+
+        # Calculate r_perpendicular
+        r_per1 = (cos_theta - psi1) ** 2 + psi2**2
+        r_per2 = (cos_theta + psi1) ** 2 + psi2**2
+        r_per = r_per1 / r_per2
+
+        # Calculate r_parallel
+        r_par1 = ((n**2 - kappa**2) * cos_theta - psi1) ** 2
+        r_par2 = (2 * n * kappa * cos_theta - psi2) ** 2
+        r_par3 = ((n**2 - kappa**2) * cos_theta + psi1) ** 2
+        r_par4 = (2 * n * kappa * cos_theta + psi2) ** 2
+        r_par = (r_par1 + r_par2) / (r_par3 + r_par4)
+
+        t_per = 1 - r_per
+        t_par = 1 - r_par
+
+        return 0.5 * (t_per + t_par)
+
+    output_arr = []
+
+    for i, j in zip(ref_arr, kappa_i):
+        tav_num = integrate.quad(txnn, 0, np.sin(alpha) ** 2, args=(i, j))
+        tav = tav_num[0] / np.sin(alpha) ** 2
+        output_arr.append(tav)
+
+    return np.array(output_arr)
 
 
 def get_tav(theta, refractive_index_arr: np.array):
@@ -17,7 +127,7 @@ def get_tav(theta, refractive_index_arr: np.array):
     if theta_r == 0:
         return 4 * np.divide(refractive_index_arr, a * 2)
     elif theta_r == np.pi / 2:
-        b1 = np.zeros(s)  
+        b1 = np.zeros(s)
     else:
         b1 = np.sqrt((ds**2 - rp / 2) ** 2 + k)
     b2 = ds**2 - rp / 2
@@ -46,6 +156,32 @@ def get_tav(theta, refractive_index_arr: np.array):
     tp = tp1 + tp2 + tp3 + tp4 + tp5
 
     return (ts + tp) / (2 * ds**2)
+
+
+def get_tav_test(alpha, ref_idx: np.array):
+    def txn(theta, n):
+        theta_r = np.radians(theta)
+        s2 = np.sin(theta_r) ** 2
+
+        part1 = (1 - s2) ** 0.5
+        part2 = (n**2 - s2) ** 0.5
+        t_per_num = 4 * part1 * part2
+        t_per_denom = (part1 + part2) ** 2
+        t_per = t_per_num / t_per_denom
+
+        t_par_num = 4 * n**2 * part1 * part2
+        t_par_denom = (n**2 * part1 + part2) ** 2
+        t_par = t_par_num / t_par_denom
+
+        return 0.5 * (t_per + t_par)
+
+    output_arr = []
+    for i in ref_idx:
+        tav_num = integrate.quad(txn, 0, np.sin(alpha) ** 2, args=(i))
+        tav = tav_num[0] / np.sin(alpha) ** 2
+        output_arr.append(tav)
+
+    return np.array(output_arr)
 
 
 def get_integral(k):
@@ -105,8 +241,15 @@ def get_integral(k):
 
 
 if __name__ == "__main__":
-    test = [2, 15, 1, 3.33, 0.0005]
-    for i in test:
-        print(f"i: {i}")
-        print(get_integral(i))
-        print(gammainc(0, i))
+    # test = [2, 15, 1, 3.33, 0.0005]
+    # for i in test:
+    #     print(f"i: {i}")
+    #     print(get_integral(i))
+    #     print(gammainc(0, i))
+    data2 = np.array(data)
+    n = data2[:, 1]
+
+    # ans = get_tav(10, n)
+    # ans2 = get_tav_THZ_v2(10, n)
+
+    # print(ans2)
