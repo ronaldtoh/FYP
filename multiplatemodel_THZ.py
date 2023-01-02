@@ -18,12 +18,13 @@ Plant leaf reflectance and transmittance are calculated from 400 nm to
 
 
 class MultiPlateModel_THZ:
-    def __init__(self, N: int, Cab, Cw, Cm):
+    def __init__(self, N: int, Cab, Cw, Cm, title="test"):
         "Leaf Structure Parameter"
         self.N = N
         self.Cab = Cab
         self.Cw = Cw
         self.Cm = Cm
+        self.title = title
         self.calculate()
 
     def _b(self):
@@ -121,7 +122,7 @@ class MultiPlateModel_THZ:
     def output(self):
         return [self.frequency, self._reflectance(), self._transmittance()]
 
-    def summary(self, title="test"):
+    def summary(self):
         plot, axs = plt.subplots()
         output = self.output()
         axs.plot(output[0], output[1], label="Reflectance")
@@ -129,19 +130,17 @@ class MultiPlateModel_THZ:
 
         total = output[1] + output[2]
         absorbed = 1 - total
-        axs.plot(output[0], absorbed, label="Absorbed")
+        axs.plot(output[0], absorbed, label="Absorption")
 
-        axs.set_title(
-            f"Reflectance, Transmittance,Absorbance of light through a {title} leaf"
-        )
-        axs.set_xlabel("frequency/Thz")
+        axs.set_title(f"Optical spectrum (Terahertz) of a {self.title} leaf")
+        axs.set_xlabel("Frequency (THz)")
         axs.set_ylabel("")
         axs.set_ylim(-0.2, 1.2)
 
         axs.grid(which="both", color=(0.8, 0.8, 0.8))
         plt.legend(loc=(1.04, 0.5))
         plt.legend(bbox_to_anchor=(1, 0.4), loc="center right")
-        path = "output " + title + ".jpg"
+        path = "output " + self.title + ".jpg"
         plot.savefig(path)
 
 
@@ -151,6 +150,21 @@ if __name__ == "__main__":
     # model = MultiPlateModel_THZ(2.2, 30, 0.0015, 0.0005)
     # model = PROSPECT1990(2.698, 70.8, 0.000117, 0.009327)
     # output = model.output()
-    # model = MultiPlateModel_THZ(2.107, 35.2, 0.000244, 0.00225)  # Dry Lettuce
-    model = MultiPlateModel_THZ(2.275, 23.7, 0.0075, 0.005811)  # Fresh Rice
-    model.summary("fresh rice")
+
+    model = MultiPlateModel_THZ(
+        2.275, 23.7, 0.0075, 0.005811, "fresh rice"
+    )  # Fresh Rice
+    model.summary()
+
+    model = MultiPlateModel_THZ(1.518, 0, 0.0131, 0.003662, "fresh corn")  # Fresh corn
+    model.summary()
+
+    model = MultiPlateModel_THZ(
+        2.107, 35.2, 0.000244, 0.00225, "dry lettuce"
+    )  # Dry Lettuce
+    model.summary()
+
+    model = MultiPlateModel_THZ(
+        2.698, 70.8, 0.000117, 0.009327, "dry bamboo"
+    )  # Dry bamboo
+    model.summary()

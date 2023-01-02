@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
     total = output[1] + output[2]
     absorbed = 1 - total
-    axs.plot(output[0], absorbed, label="Absorbed")
+    axs.plot(output[0], absorbed, label="Absorption")
     axs.hlines(y=1, xmin=400, xmax=2500, color="k")
     # axs.plot(output[0], total, label="R+T")
     axs.set_title("Reflectance, Transmittance of light through a leaf")
