@@ -81,6 +81,8 @@ class PlotData:
 
     def plot_varying_cw(self):
         cw_values = [0.000100, 0.000500, 0.001000, 0.005000, 0.010000, 0.020000]
+        cw_str = [str(x) for x in cw_values]
+        cw_str = [x.ljust(8, "0") for x in cw_str]
         fig, (ax1, ax2, ax3) = plt.subplots(
             1, 3, figsize=(12, 5), sharey=True, sharex=True
         )
@@ -100,13 +102,13 @@ class PlotData:
         ax3.set_ylim(-0.2, 1.2)
         ax3.grid()
         for i in cw_values:
-            model = MultiPlateModel_THZ(2, 30, i, 0.0092)
+            model = MultiPlateModel_THZ(2.0, 30, i, 0.01)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
             ax2.plot(output[0], output[2], label=i)
             ax3.plot(output[0], absorbance, label=i)
-        ax3.legend(loc="right", bbox_to_anchor=(1.4, 0.5))
+        ax3.legend(labels=cw_str, loc="right", bbox_to_anchor=(1.451, 0.5))
         fig.savefig("vary_cw.jpg")
 
     def plot_varying_cw_freshleaves(self):
@@ -174,11 +176,13 @@ class PlotData:
 
     def plot_varying_cm_dry(self):
         cw_values = [0.000100, 0.000500, 0.001000, 0.005000, 0.010000, 0.020000]
+        cw_str = [str(x) for x in cw_values]
+        cw_str = [x.ljust(8, "0") for x in cw_str]
         fig, (ax1, ax2, ax3) = plt.subplots(
             1, 3, figsize=(12, 5), sharey=True, sharex=True
         )
 
-        fig.suptitle("Varying Cm (Dry)")
+        fig.suptitle("Varying Cm")
         ax1.set_title("Reflectance")
         ax1.set_ylim(-0.2, 1.2)
         ax1.grid()
@@ -193,13 +197,13 @@ class PlotData:
         ax3.set_ylim(-0.2, 1.2)
         ax3.grid()
         for i in cw_values:
-            model = MultiPlateModel_THZ(1.2, 30, 0.000117, i)
+            model = MultiPlateModel_THZ(1.2, 30, 0.001, i)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
             ax2.plot(output[0], output[2], label=i)
             ax3.plot(output[0], absorbance, label=i)
-        ax3.legend(loc="right", bbox_to_anchor=(1.4, 0.5))
+        ax3.legend(labels=cw_str, loc="right", bbox_to_anchor=(1.451, 0.5))
         fig.savefig("vary_cm_dry.jpg")
 
     def plot_varying_N(self):
@@ -525,11 +529,11 @@ class PlotData:
 
 if __name__ == "__main__":
     plotter = PlotData()
-    plotter.inverse_noise(100)
+    # plotter.inverse_noise(100)
     # plotter.open_up_json()
-    # plotter.plot_varying_cw()
+    plotter.plot_varying_cw()
     # plotter.plot_varying_cm_fresh()
-    # plotter.plot_varying_cm_dry()
+    plotter.plot_varying_cm_dry()
     # plotter.plot_chlorophyll()
 
     pass

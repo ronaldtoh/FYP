@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 from scipy.special import exp1
 from data_another_style import data
+from typing import List
 
 # import pandas as pd
 
@@ -18,8 +19,17 @@ Plant leaf reflectance and transmittance are calculated from 400 nm to
 
 
 class MultiPlateModel_THZ:
-    def __init__(self, N: int, Cab, Cw, Cm, title="test"):
-        "Leaf Structure Parameter"
+    def __init__(self, N: int, Cab: float, Cw: float, Cm: float, title="test"):
+        """Plant leaf reflectance and transmittance are calculated from 0.1THz to 1.6THz with the following parameters
+
+        Args:
+            N (int): Leaf Structure Parameter
+            Cab (float): Chlorophyll a+b content in µg/cm²
+            Cw (float): equivalent water thickness in g/cm² or cm
+            Cm (float): dry matter content in g/cm²
+            title (str, optional): Title of graph to be output. Defaults to "test".
+        """
+
         self.N = N
         self.Cab = Cab
         self.Cw = Cw
@@ -28,31 +38,62 @@ class MultiPlateModel_THZ:
         self.calculate()
 
     def _b(self):
+        """Calculate intermediate value/matrix b
+
+        Returns:
+            ndarray(float): b
+        """
         return (
             (self.beta * (self.alpha - self.r_90))
             / (self.alpha * (self.beta - self.r_90))
         ) ** 0.5
 
     def _alpha(self):
+        """Calculate intermediate value/matrix alpha
+
+        Returns:
+            ndarray(float): alpha
+        """
         return (1 + self.r_90**2 - self.t_90**2 + self.delta**0.5) / (
             2 * self.r_90
         )
 
     def _beta(self):
+        """Calculate intermediate value/matrix beta
+
+        Returns:
+            ndarray(float): beta
+        """
         return (1 + self.r_90**2 - self.t_90**2 - self.delta**0.5) / (
             2 * self.r_90
         )
 
     def _delta(self):
+        """Calculate intermediate value/matrix delta
+
+        Returns:
+            ndarray(float): delta
+        """
         return (self.t_90**2 - self.r_90**2 - 1) ** 2 - (4 * self.r_90**2)
 
     def _reflectance(self):
+        """Calculate reflectance of leaf
+
+        Returns:
+            ndarray(float): reflectance
+        """
         return self.s1 / self.s3
 
     def _transmittance(self):
+        """Calculate transmittance of leaf
+
+        Returns:
+            ndarray(float): transmittance
+        """
         return self.s2 / self.s3
 
     def calculate(self):
+        """Calculate intermediate values of model"""
         self.frequency = np.linspace(0.2, 1.6, 100)
         self.wavelength = 3e8 / (self.frequency * 10e12) * 1000
 
@@ -119,18 +160,24 @@ class MultiPlateModel_THZ:
             - self.r_90 * (self.b ** (self.N - 1) - self.b ** (1 - self.N))
         )
 
-    def output(self):
+    def output(self) -> List[np.ndarray(float), np.ndarray(float), np.ndarray(float)]:
+        """Returns frequency, reflectance, transmittance
+
+        Returns:
+            List[np.ndarray(float), np.ndarray(float), np.ndarray(float)]: [frequency, reflectance, transmittance]
+        """
         return [self.frequency, self._reflectance(), self._transmittance()]
 
     def summary(self):
+        """Plot and save a graph of reflectance and transmittance against frequency"""
         plot, axs = plt.subplots()
         output = self.output()
         axs.plot(output[0], output[1], label="Reflectance")
-        axs.plot(output[0], output[2], label="Transmittance")
+        axs.plot(output[0], 1 - output[2], label="Transmittance")
 
         total = output[1] + output[2]
-        absorbed = 1 - total
-        axs.plot(output[0], absorbed, label="Absorption")
+        # absorbed = 1 - total
+        # axs.plot(output[0], absorbed, label="Absorption")
 
         axs.set_title(f"Optical spectrum (Terahertz) of a {self.title} leaf")
         axs.set_xlabel("Frequency (THz)")
