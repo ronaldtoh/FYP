@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 from data_another_style import data
-from multiplatemodel_THZ import MultiPlateModel_THZ
+from THZ_PROSPECT import THZ_PROSPECT
 import json
 import scipy.optimize
 
@@ -28,7 +28,7 @@ class MultiPlateModel_THZ_inv:
         storeroom = {}
         for cm in cm_values:
             for cw in cw_values:
-                output = MultiPlateModel_THZ(self.N, 0, cw, cm).output()[1:]
+                output = THZ_PROSPECT(self.N, 0, cw, cm).output()[1:]
                 storeroom[(cw, cm)] = output
 
         with open("LUT.json", "w") as outfile:
@@ -39,7 +39,7 @@ class MultiPlateModel_THZ_inv:
     def get_values(self):
         def cost_function(x):
             cw, cm, N_iter = x
-            output = MultiPlateModel_THZ(N_iter, 0, cw, cm).output()[1:]
+            output = THZ_PROSPECT(N_iter, 0, cw, cm).output()[1:]
 
             refl_diff = output[0] - self.measured_reflectance_array
             trans_diff = output[1] - self.measured_transmittance_array
@@ -60,9 +60,7 @@ class MultiPlateModel_THZ_inv:
 
 
 if __name__ == "__main__":
-    model = MultiPlateModel_THZ(
-        2.107, 35.2, 0.000244, 0.00225, "dry lettuce"
-    )  # Dry Lettuce)
+    model = THZ_PROSPECT(2.107, 35.2, 0.000244, 0.00225, "dry lettuce")  # Dry Lettuce)
     output_arr = model.output()
     inv = MultiPlateModel_THZ_inv(output_arr[1], output_arr[2])
     res = inv.get_values()

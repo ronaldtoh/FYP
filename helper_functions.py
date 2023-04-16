@@ -70,7 +70,7 @@ def get_tav_THZ(alpha: float, ref_arr: np.array, absorption: np.array, wave: np.
     # print(kappa)
 
     if alpha == 0:
-        r = ((n - 1) ** 2 + kappa_i**2) / ((n + 1) ** 2 + kappa_i**2)
+        r = ((ref_arr - 1) ** 2 + kappa_i**2) / ((ref_arr + 1) ** 2 + kappa_i**2)
         return 1 - r
 
     def txnn(theta, n, kappa):
@@ -156,6 +156,103 @@ def get_tav(theta, refractive_index_arr: np.array):
     tp = tp1 + tp2 + tp3 + tp4 + tp5
 
     return (ts + tp) / (2 * ds**2)
+
+
+def transfer_matrix(d, n, k, w):
+    """
+    Calculates the transfer matrix for a plate with given thickness, refractive index, and absorption coefficient
+    at a given frequency.
+
+    Arguments:
+    d -- thickness of the plate in meters
+    n -- refractive index of the plate
+    k -- absorption coefficient of the plate in 1/meters
+    w -- frequency of the incident light in radians/second
+
+    Returns:
+    The transfer matrix for the plate
+    """
+    c = 3e8  # speed of light in m/s
+    alpha = k
+    beta = n * np.sqrt(1 - (k / n) ** 2)
+    gamma = np.exp(-2j * alpha * d)
+    delta = np.cos(beta * d) - 1j * (alpha / beta) * np.sin(beta * d)
+    A = np.array(
+        [[np.exp(1j * beta * d), 0], [0, np.exp(-1j * beta * d)]], dtype=np.complex
+    )
+    B = np.array(
+        [
+            [np.cos(beta * d), 1j * (beta / alpha) * np.sin(beta * d)],
+            [1j * (alpha / beta) * np.sin(beta * d), np.cos(beta * d)],
+        ],
+        dtype=np.complex,
+    )
+    C = np.array([[gamma, 0], [0, gamma]], dtype=np.complex)
+    D = np.array(
+        [
+            [delta, 1j * (beta / alpha) * np.sin(beta * d)],
+            [1j * (alpha / beta) * np.sin(beta * d), delta],
+        ],
+        dtype=np.complex,
+    )
+    T = np.matmul(np.matmul(A, B), np.matmul(C, D))
+    return T
+
+
+def reflectance_transmittance(d, n, k, w, theta):
+    """
+    Calculates the reflectance and transmittance of a single plate with given thickness, refractive index,
+    and absorption coefficient at a given frequency and angle of incidence using the transfer matrix method.
+
+    Arguments:
+    d -- thickness of the plate in meters
+    n -- refractive index of the plate
+    k -- absorption coefficient of the plate in 1/meters
+    w -- frequency of the incident light in radians/second
+    theta -- angle of incidence in radians
+
+    Returns:
+    The reflectance and transmittance of the single plate
+    """
+    T = transfer_matrix(d, n, k, w)
+    r = T[1, 0] / T[0, 0]
+    t = 1 / T[0, 0]
+    R = np.abs(r) ** 2
+
+    T = np.abs(t) ** 2
+
+    return R, T
+
+
+def reflectance_transmittance_2plates(d1, d2, n1, n2, k1, k2, w):
+    """
+    Calculates the reflectance and transmittance of two stacked plates with given thickness, refractive index,
+    and absorption coefficient at a given frequency using the transfer matrix method.
+
+    Arguments:
+    d1 -- thickness of the first plate in meters
+    d2 -- thickness of the second plate in meters
+    n1 -- refractive index of the first plate
+    n2 -- refractive index of the second plate
+    k1 -- absorption coefficient of the first plate in 1/meters
+    k2 -- absorption coefficient of the second plate in 1/meters
+    w -- frequency of the incident light in radians/second
+
+    Returns:
+    The reflectance and transmittance of the two stacked plates
+    """
+    T1 = transfer_matrix(d1, n1, k1, w)
+    T2 = transfer_matrix(d2, n2, k2, w)
+    T = np.matmul(T2, T1)
+    r = T[1, 0] / T[0, 0]
+    t = 1 / T[0, 0]
+    R = np.abs(r) ** 2
+    T = np.abs(t) ** 2 * (
+        n2
+        * np.cos(w * np.sqrt(n2**2 - k2**2) * d2)
+        / (n1 * np.cos(w * np.sqrt(n1**2 - k1**2) * d1))
+    )
+    return R, T
 
 
 def get_tav_test(alpha, ref_idx: np.array):

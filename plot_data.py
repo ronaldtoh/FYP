@@ -1,8 +1,8 @@
 from data_another_style import data
 import numpy as np
 import matplotlib.pyplot as plt
-from multiplatemodel_THZ import MultiPlateModel_THZ
-from multiplatemodel_THZ_inverse import MultiPlateModel_THZ_inv
+from THZ_PROSPECT import THZ_PROSPECT
+from THZ_PROSPECT_inverse import MultiPlateModel_THZ_inv
 import random
 import scipy
 import json
@@ -102,7 +102,7 @@ class PlotData:
         ax3.set_ylim(-0.2, 1.2)
         ax3.grid()
         for i in cw_values:
-            model = MultiPlateModel_THZ(2.0, 30, i, 0.01)
+            model = THZ_PROSPECT(2.0, 30, i, 0.01)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
@@ -132,7 +132,7 @@ class PlotData:
         ax3.set_ylim(-0.2, 1.2)
         ax3.grid()
         for i in cw_values:
-            model = MultiPlateModel_THZ(2, 30, i, 0.0092)
+            model = THZ_PROSPECT(2, 30, i, 0.0092)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
@@ -164,7 +164,7 @@ class PlotData:
         ax3.set_ylim(-0.2, 1.2)
         ax3.grid()
         for i in cw_values:
-            model = MultiPlateModel_THZ(1.2, 30, 0.02, i)
+            model = THZ_PROSPECT(1.2, 30, 0.02, i)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
@@ -197,7 +197,7 @@ class PlotData:
         ax3.set_ylim(-0.2, 1.2)
         ax3.grid()
         for i in cw_values:
-            model = MultiPlateModel_THZ(1.2, 30, 0.001, i)
+            model = THZ_PROSPECT(1.2, 30, 0.001, i)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
@@ -229,7 +229,7 @@ class PlotData:
         # ax3.set_xlim(0.2, 0.4)
         ax3.grid()
         for i in N_values:
-            model = MultiPlateModel_THZ(i, 30, 0.001, 0.01)
+            model = THZ_PROSPECT(i, 30, 0.001, 0.01)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             ax1.plot(output[0], output[1], label=i)
@@ -251,7 +251,7 @@ class PlotData:
         ax3.set_xlim(0.2, 0.4)
         ax3.grid()
         for i in N_values:
-            model = MultiPlateModel_THZ(i, 30, 0.001, 0.01)
+            model = THZ_PROSPECT(i, 30, 0.001, 0.01)
             output = model.output()
             absorbance = 1 - output[1] - output[2]
             # ax1.plot(output[0], output[1], label=i)
@@ -276,7 +276,7 @@ class PlotData:
             random_cw = random.uniform(0.00006, 0.010)
             random_cm = random.uniform(0.00190, 0.0165)
             title = f"regress_{i}"
-            model = MultiPlateModel_THZ(random_N, 0, random_cw, random_cm, title)
+            model = THZ_PROSPECT(random_N, 0, random_cw, random_cm, title)
             simulated_output = model.output()[1:]
             try:
                 inv_model = MultiPlateModel_THZ_inv(
@@ -369,7 +369,7 @@ class PlotData:
             random_cw = random.uniform(0.00006, 0.010)
             random_cm = random.uniform(0.00190, 0.0165)
             title = f"regress_{i}"
-            model = MultiPlateModel_THZ(random_N, 0, random_cw, random_cm, title)
+            model = THZ_PROSPECT(random_N, 0, random_cw, random_cm, title)
             simulated_output = model.output()[1:]
             try:
 
@@ -453,6 +453,62 @@ class PlotData:
 
         return
 
+    def plot_inverse_vs_normal(self):
+        snr = 1 / 20
+
+        random_N = random.uniform(1.0, 3.5)
+        random_cw = random.uniform(0.00006, 0.010)
+        random_cm = random.uniform(0.00190, 0.0165)
+        model = THZ_PROSPECT(random_N, 0, random_cw, random_cm, "invvnormrla")
+        simulated_output = model.output()[1:]
+        try:
+
+            noisy_r = (
+                simulated_output[0] * np.random.normal(0, snr, 100)
+                + simulated_output[0]
+            )
+            noisy_t = (
+                simulated_output[1] * np.random.normal(0, snr, 100)
+                + simulated_output[1]
+            )
+            inv_model = MultiPlateModel_THZ_inv(noisy_r, noisy_t)
+
+            inv_output = inv_model.get_values().x
+            print(inv_output)
+            inv_spectrum = THZ_PROSPECT(
+                inv_output[2], 0, inv_output[0], inv_output[1]
+            ).output()
+            print(len(inv_spectrum))
+
+        except RuntimeWarning:
+            print("Runtime Error")
+
+        fig, axs = plt.subplots()
+        axs.plot(
+            inv_spectrum[0], simulated_output[0], ".", label="Simulated Reflectance"
+        )
+        axs.plot(inv_spectrum[0], inv_spectrum[1], "-", label="Inversed Reflectance")
+
+        axs.plot(
+            inv_spectrum[0], simulated_output[1], ".", label="Simulated Transmittance"
+        )
+        axs.plot(inv_spectrum[0], inv_spectrum[2], "-", label="Inversed Transmittance")
+
+        # total = normal[1] + normal[2]
+        # absorbed = 1 - total
+        # axs.plot(output[0], absorbed, label="Absorption")
+
+        axs.set_title(f"Inversed vs Simulated optical spectrum")
+        axs.set_xlabel("Frequency (THz)")
+        axs.set_ylabel("")
+        axs.set_ylim(-0.2, 1.2)
+
+        axs.grid(which="both", color=(0.8, 0.8, 0.8))
+        plt.legend(loc=(1.04, 0.5))
+        plt.legend(bbox_to_anchor=(1, 0.5), loc="center right")
+        path = "output_inv_vs_gen.jpg"
+        plt.savefig(path)
+
     def open_up_json(self):
         with open("inv_data_unbounded_100.json") as json_file:
             data = json.load(json_file)
@@ -496,7 +552,7 @@ class PlotData:
         return
 
     def plot_noisy_spectrum(self):
-        model = MultiPlateModel_THZ(1.8, 30, 0.0008, 0.0062)
+        model = THZ_PROSPECT(1.8, 30, 0.0008, 0.0062)
 
         plot, axs = plt.subplots()
         output = model.output()
@@ -531,9 +587,9 @@ if __name__ == "__main__":
     plotter = PlotData()
     # plotter.inverse_noise(100)
     # plotter.open_up_json()
-    plotter.plot_varying_cw()
+    # plotter.plot_varying_cw()
     # plotter.plot_varying_cm_fresh()
-    plotter.plot_varying_cm_dry()
+    plotter.plot_inverse_vs_normal()
     # plotter.plot_chlorophyll()
 
     pass

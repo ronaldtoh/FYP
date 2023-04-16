@@ -18,7 +18,7 @@ Plant leaf reflectance and transmittance are calculated from 400 nm to
 """
 
 
-class MultiPlateModel_THZ:
+class THZ_PROSPECT:
     def __init__(self, N: int, Cab: float, Cw: float, Cm: float, title="test"):
         """Plant leaf reflectance and transmittance are calculated from 0.1THz to 1.6THz with the following parameters
 
@@ -109,20 +109,22 @@ class MultiPlateModel_THZ:
         # (Dry Matter content of leaf) * (Specific absorption coefficient of leaf)] / Leaf Structure Parameter
         # + Absorption coefficient of albino elementary layer
         # + Scattering-induced absorption
-        a_k = (
+        self.a_k = (
             self.Cw * self.water_absorption_coeff
             + self.Cm * self.dry_matter_absorption_coeff
         ) / self.N
+        # print(a_k)
 
         # Getting the transmission coefficient k
         # Should never hit the if statement
-        if np.all(a_k <= 0):
+        if np.all(self.a_k <= 0):
             k = 1
         else:
-            k = (1 - a_k) * np.exp(-a_k) + (a_k**2) * exp1(a_k)
-        t1 = get_tav_THZ(90, self.refractive_index_array, a_k, self.wavelength)
-        t2 = get_tav_THZ(40, self.refractive_index_array, a_k, self.wavelength)
-
+            k = (1 - self.a_k) * np.exp(-self.a_k) + (self.a_k**2) * exp1(self.a_k)
+        t1 = get_tav_THZ(90, self.refractive_index_array, self.a_k, self.wavelength)
+        t2 = get_tav_THZ(40, self.refractive_index_array, self.a_k, self.wavelength)
+        # print(f"t1: {t1}")
+        # print(f"t2: {t2}")
         x1 = 1 - t1
         x2 = (t1) ** 2 * (k**2) * (self.refractive_index_array**2 - t1)  # * t2
         x3 = (t1) ** 2 * k * (self.refractive_index_array**2)  # * t2
@@ -138,6 +140,8 @@ class MultiPlateModel_THZ:
         "r_alpha/t_aplha: Reflectance/Transmitance for first plate"
         self.r_alpha = x5 * self.r_90 + x6
         self.t_alpha = x5 * self.t_90
+        # print(f"self.r_alpha: {self.r_alpha}")
+        # print(f"self.t_alpha: {self.t_alpha}")
 
         self.delta = self._delta()
         self.alpha = self._alpha()
@@ -160,7 +164,121 @@ class MultiPlateModel_THZ:
             - self.r_90 * (self.b ** (self.N - 1) - self.b ** (1 - self.N))
         )
 
-    def output(self) -> List[np.ndarray(float), np.ndarray(float), np.ndarray(float)]:
+    def get_r_alpha(self):
+        return self.r_alpha
+
+    def get_t_alpha(self):
+        return self.t_alpha
+
+    def get_complex_refractive_index(self):
+        return self.refractive_index_array + 1j * self.a_k
+
+    def plot_first_layer(self):
+        plot, axs = plt.subplots()
+        output = self.output()
+        axs.plot(output[0], self.r_alpha, label="Reflectance 1st layer")
+        axs.plot(output[0], 1 - self.t_alpha, label="Transmittance 1st layer")
+
+        # total = output[1] + output[2]
+        # absorbed = 1 - total
+        # axs.plot(output[0], absorbed, label="Absorption")
+
+        axs.set_title(f"Optical spectrum (Terahertz) of a diseased leaf")
+        axs.set_xlabel("Frequency (THz)")
+        axs.set_ylabel("")
+        axs.set_ylim(-0.2, 1.2)
+
+        axs.grid(which="both", color=(0.8, 0.8, 0.8))
+        plt.legend(loc=(1.04, 0.5))
+        plt.legend(bbox_to_anchor=(1, 0.4), loc="center right")
+        path = "output_first_layer.jpg"
+        plot.savefig(path)
+        return
+
+    def plot_other_layer(self):
+        plot, axs = plt.subplots()
+        output = self.output()
+        axs.plot(output[0], self.r_90, label="Reflectance other layer")
+        axs.plot(output[0], 1 - self.t_90, label="Transmittance other layer")
+        # print(self.t_90)
+        # total = output[1] + output[2]
+        # absorbed = 1 - total
+        # axs.plot(output[0], absorbed, label="Absorption")
+
+        axs.set_title(f"Optical spectrum (Terahertz) of a diseased leaf")
+        axs.set_xlabel("Frequency (THz)")
+        axs.set_ylabel("")
+        axs.set_ylim(-0.2, 1.2)
+
+        axs.grid(which="both", color=(0.8, 0.8, 0.8))
+        plt.legend(loc=(1.04, 0.5))
+        plt.legend(bbox_to_anchor=(1, 0.4), loc="center right")
+        path = "output_other_layer.jpg"
+        plot.savefig(path)
+        return
+
+    def plot_interfaces(self):
+        other_layer = self.N - 1
+        midpoint = len(self.r_alpha) // 2
+        output = self.output()
+
+        linex = [0, 1, 1, self.N]
+        line1yr = [self.r_alpha[0], self.r_alpha[0], output[1][0], output[1][0]]
+        line1yt = [
+            self.t_alpha[0],
+            self.t_alpha[0],
+            output[2][0],
+            output[2][0],
+        ]
+        line2yr = [
+            self.r_alpha[midpoint],
+            self.r_alpha[midpoint],
+            output[1][midpoint],
+            output[1][midpoint],
+        ]
+        line2yt = [
+            self.t_alpha[midpoint],
+            self.t_alpha[midpoint],
+            output[2][midpoint],
+            output[2][midpoint],
+        ]
+
+        line3yr = [self.r_alpha[-1], self.r_alpha[-1], output[1][-1], output[1][-1]]
+        line3yt = [
+            self.t_alpha[-1],
+            self.t_alpha[-1],
+            output[2][-1],
+            output[2][-1],
+        ]
+
+        plot, axs = plt.subplots()
+        axs.plot(linex, line1yr, marker=".", label=str(output[0][0]) + ("THz-R"))
+        axs.plot(linex, line1yt, marker=".", label=str(output[0][0]) + ("THz-T"))
+        axs.plot(
+            linex,
+            line2yr,
+            marker="x",
+            label=str(round(output[0][midpoint], 1)) + ("THz-R"),
+        )
+        axs.plot(
+            linex,
+            line2yt,
+            marker="x",
+            label=str(round(output[0][midpoint], 1)) + ("THz-T"),
+        )
+        axs.plot(linex, line3yr, label=str(output[0][-1]) + ("THz-R"))
+        axs.plot(linex, line3yt, label=str(output[0][-1]) + ("THz-T"))
+
+        plt.grid()
+        axs.set_title("Varying reflectance and transmittance throughout the leaf")
+        axs.set_xlabel("Total number of plates")
+        axs.set_ylim(-0.2, 1.2)
+        plt.tight_layout(rect=[0, 0, 0.85, 1])
+        plt.legend(bbox_to_anchor=(1.25, 0.4), loc="center right")
+        plot.savefig("leafspectrumplot.jpg")
+        return
+
+    def output(self):
         """Returns frequency, reflectance, transmittance
 
         Returns:
@@ -198,20 +316,18 @@ if __name__ == "__main__":
     # model = PROSPECT1990(2.698, 70.8, 0.000117, 0.009327)
     # output = model.output()
 
-    model = MultiPlateModel_THZ(
-        2.275, 23.7, 0.0075, 0.005811, "fresh rice"
-    )  # Fresh Rice
-    model.summary()
+    # model = MultiPlateModel_THZ(
+    #     2.275, 23.7, 0.0075, 0.005811, "fresh rice"
+    # )  # Fresh Rice
+    # model.summary()
 
-    model = MultiPlateModel_THZ(1.518, 0, 0.0131, 0.003662, "fresh corn")  # Fresh corn
-    model.summary()
+    # model = MultiPlateModel_THZ(1.518, 0, 0.0131, 0.003662, "fresh corn")  # Fresh corn
+    # model.summary()
 
-    model = MultiPlateModel_THZ(
-        2.107, 35.2, 0.000244, 0.00225, "dry lettuce"
-    )  # Dry Lettuce
+    model = THZ_PROSPECT(2.107, 35.2, 0.000244, 0.00225, "dry lettuce")  # Dry Lettuce
     model.summary()
-
-    model = MultiPlateModel_THZ(
-        2.698, 70.8, 0.000117, 0.009327, "dry bamboo"
-    )  # Dry bamboo
+    model.plot_first_layer()
+    model.plot_other_layer()
+    model.plot_interfaces()
+    model = THZ_PROSPECT(2.698, 70.8, 0.000117, 0.009327, "dry bamboo")  # Dry bamboo
     model.summary()
