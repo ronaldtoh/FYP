@@ -17,7 +17,7 @@ Plant leaf reflectance and transmittance are calculated from 400 nm to
 """
 
 
-class MultiPlateModel:
+class PROSPECT:
     def __init__(self, N: int, Cab, Cw, Cm):
         "Leaf Structure Parameter"
         self.N = N
@@ -120,7 +120,7 @@ class MultiPlateModel:
 
 if __name__ == "__main__":
     # model = MultiPlateModel(1.518, 58, 0.0131, 0.003662)
-    model = MultiPlateModel(1.2, 30, 0.015, 0.01)
+    model = PROSPECT(1.2, 30, 0.015, 0.01)
     # model = PROSPECT1990(2.698, 70.8, 0.000117, 0.009327)
     # df = pd.DataFrame(model.output())
     output = model.output()
