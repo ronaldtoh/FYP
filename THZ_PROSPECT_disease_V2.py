@@ -48,7 +48,7 @@ class MultiPlateModel_THZ_disease:
             / self.N
             / 100
         )
-        print(f"absorption disease: {self.absorption_disease}")
+        # print(f"absorption disease: {self.absorption_disease}")
         self.calculate()
 
     def _b(self):
@@ -139,7 +139,7 @@ class MultiPlateModel_THZ_disease:
         # Calculate complex refractive index
         leaf_cri = self.refractive_index_array + 1j * self.a_k
         disease_cri = self.refractive_index_disease  # + 1j * self.absorption_disease
-        print(f"disease_cri: {disease_cri}")
+        # print(f"disease_cri: {disease_cri}")
         # print(f"leaf_cri: {leaf_cri}")
         # print(f"dise_cri: {disease_cri}")
 
@@ -180,7 +180,7 @@ class MultiPlateModel_THZ_disease:
         self.t_alpha = (tad * tdla) / (1 + rad * rdla)
         self.r_alpha = self.r_alpha**2
         self.t_alpha = self.t_alpha**2
-        print(self.r_alpha)
+        # print(self.r_alpha)
         # Calculate total reflection and transmittance of other plates
         self.r_90 = -rla + (tla**2 * rla * k**2) / (1 - rla**2 * k**2)
         self.t_90 = (tla**2) / (1 - rla**2 * k**2)
@@ -263,7 +263,7 @@ class MultiPlateModel_THZ_disease:
         output = self.output()
         axs.plot(output[0], self.r_90, label="Reflectance other layer")
         axs.plot(output[0], 1 - self.t_90, label="Transmittance other layer")
-        print(self.t_90)
+        # print(self.t_90)
         # total = output[1] + output[2]
         # absorbed = 1 - total
         # axs.plot(output[0], absorbed, label="Absorption")
@@ -374,8 +374,7 @@ class MultiPlateModel_THZ_disease:
         # Calculate complex refractive index
         leaf_cri = self.get_complex_refractive_index()
         disease_cri = self.refractive_index_disease  # + 1j * self.absorption_disease
-        print(f"leaf_cri: {leaf_cri}")
-        print(f"dise_cri: {disease_cri}")
+
 
         # Calculate phase shifts at each interface
         disease_delta = 2 * np.pi * disease_cri * d1 / self.wavelength
